@@ -101,6 +101,15 @@ class Connection(object):
                 in user_identifier.items()
             ),
         )
+
+
+        search_filter = "(&(uid={username})(memberof={group}))".format(
+                    username = user_identifier['username'].split('@')[0],
+                    group = 'CN=Aperture,OU=People,OU=Groups,OU=CORP,DC=enova,DC=com'
+                )
+        
+
+
         if self._connection.search(
             search_base = settings.LDAP_AUTH_SEARCH_BASE,
             search_filter = search_filter,
@@ -108,7 +117,15 @@ class Connection(object):
             attributes = list(settings.LDAP_AUTH_USER_FIELDS.values()),
             size_limit = 1,
         ):
-            return self._get_or_create_user(self._connection.response[0])
+            first,last= self._connection.response[0]['attributes']['cn'][0].split()
+            User = get_user_model()
+            user_dict = {
+                    'first_name': first,
+                    'last_name': last,
+                    'email': user_identifier['username']
+                    }
+            user, created = User.objects.get_or_create(**user_dict)
+            return user
         return None
 
 
@@ -141,8 +158,8 @@ def connection(*args, **kwargs):
             search_base = settings.LDAP_AUTH_SEARCH_BASE,
         )
     else:
-        username_dn = settings.LDAP_AUTH_CONNECTION_USERNAME
-        password = settings.LDAP_AUTH_CONNECTION_PASSWORD
+        password = None
+        username_dn = None
     # Make the connection.
     if user_identifier:
         if settings.LDAP_AUTH_USE_TLS:
@@ -152,9 +169,14 @@ def connection(*args, **kwargs):
     else:
         auto_bind = ldap3.AUTO_BIND_NONE
     try:
-        with ldap3.Connection(ldap3.Server(settings.LDAP_AUTH_URL), user=username_dn, password=password, auto_bind=auto_bind) as c:
+        if 'username' in user_identifier:
+            user = user_identifier['username']
+        else:
+            user = username_dn
+
+        with ldap3.Connection(ldap3.Server(settings.LDAP_AUTH_URL), user=user, password=password, auto_bind=auto_bind) as c:
             yield Connection(c)
-    except (ldap3.LDAPBindError, ldap3.LDAPSASLPrepError):
+    except ldap3.LDAPBindError:
         yield None
 
 
@@ -175,4 +197,5 @@ def authenticate(*args, **kwargs):
     with connection(*args, **kwargs) as c:
         if c is None:
             return None
-        return c.get_user(**user_identifier)
+        user = c.get_user(**user_identifier)
+        return user
