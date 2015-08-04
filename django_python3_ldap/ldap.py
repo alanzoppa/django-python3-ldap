@@ -122,6 +122,7 @@ class Connection(object):
             user_dict = {
                     'first_name': first,
                     'last_name': last,
+                    'username': user_identifier['username'].split('@')[0],
                     'email': user_identifier['username']
                     }
             user, created = User.objects.get_or_create(**user_dict)
