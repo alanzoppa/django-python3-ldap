@@ -90,24 +90,12 @@ class Connection(object):
         # Parse the user lookup.
         user_identifier = resolve_user_identifier(settings.LDAP_AUTH_USER_LOOKUP_FIELDS, True, args, kwargs)
         # Search the LDAP database.
-        search_filter = "(&(objectClass={object_class}){user_identifier})".format(
-            object_class = clean_ldap_name(settings.LDAP_AUTH_OBJECT_CLASS),
-            user_identifier = "".join(
-                "({attribute_name}={field_value})".format(
-                    attribute_name = clean_ldap_name(settings.LDAP_AUTH_USER_FIELDS[field_name]),
-                    field_value = clean_ldap_name(field_value),
-                )
-                for field_name, field_value
-                in user_identifier.items()
-            ),
-        )
 
-
-        search_filter = "(&(uid={username})(memberof={group}))".format(
+        search_filter = "(uid={username})".format(
                     username = user_identifier['username'].split('@')[0],
-                    group = 'CN=Aperture,OU=People,OU=Groups,OU=CORP,DC=enova,DC=com'
                 )
         
+        #search_filter = "(&(uid={username})"
 
 
         if self._connection.search(
@@ -117,7 +105,9 @@ class Connection(object):
             attributes = list(settings.LDAP_AUTH_USER_FIELDS.values()),
             size_limit = 1,
         ):
-            first,last= self._connection.response[0]['attributes']['cn'][0].split()
+            split_attrs = self._connection.response[0]['attributes']['cn'][0].split()
+            first = split_attrs[0] 
+            last = split_attrs[1] 
             User = get_user_model()
             user_dict = {
                     'first_name': first,
