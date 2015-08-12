@@ -105,7 +105,7 @@ class Connection(object):
 
         search_filter = "(&(uid={username})(memberof={group}))".format(
                     username = user_identifier['username'].split('@')[0],
-                    group = 'CN=Aperture,OU=People,OU=Groups,OU=CORP,DC=enova,DC=com'
+                    group = 'OU=People,OU=Groups,OU=CORP,DC=enova,DC=com'
                 )
         
 
