@@ -109,12 +109,13 @@ class Connection(object):
             last = split_attrs[1] 
             User = get_user_model()
             user_dict = {
-                    'first_name': first,
-                    'last_name': last,
                     'username': user_identifier['username'].split('@')[0],
                     'email': user_identifier['username']
                     }
             user, created = User.objects.get_or_create(**user_dict)
+            user.first_name = first
+            user.last_name = last
+            user.save()
             return user
         return None
 
